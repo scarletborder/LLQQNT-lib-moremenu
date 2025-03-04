@@ -1,0 +1,32 @@
+{
+  "manifest_version": 4,
+  "type": "extension",
+  "name": "LiteLoaderQQNT-ForceExit",
+  "slug": "lite_loader_qqnt_force_exit",
+  "description": "extension which enables user to terminate QQ process in QQ Main window",
+  "version": "1.0.0",
+  "icon": null,
+  "authors": [
+    {
+      "name": "scarletborder",
+      "link": "https://github.com/scarletborder"
+    }
+  ],
+  "platform": [
+    "win32",
+    "linux"
+  ],
+  "injects": {
+    "main": "./main/index.js",
+    "preload": "./preload/index.js",
+    "renderer": "./renderer/index.js"
+  },
+  "repository": {
+    "repo": "scarletborder/LiteLoaderQQNT-ForceExit",
+    "branch": "master",
+    "release": {
+      "tag": "1.0.0",
+      "file": "LiteLoaderQQNT-ForceExit"
+    }
+  }
+}
