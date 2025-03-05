@@ -1,8 +1,21 @@
-# LiteLoaderQQNT-ForceExit
+# LLQQNT-lib-moremenu
 
-由于GNOME桌面下的QQNT频繁出现无法通过右键任务栏图标关闭QQ进程,而每次通过系统管理器去杀进程又太烦,因此写本插件,为QQNT的主窗口增加一个关闭QQ进程的快捷方式.
+允许用户添加左下角的更多菜单选项
 
+## 使用
 
+主进程中只需要向register管理器注册自己的信息
+
+```ts
+// 主进程中直接注册插件
+mainPluginUtil.registerPlugin('plugin1');
+```
+
+在渲染进程中通过MoreMenu管理器添加自己的按钮,添加完全部的按钮后执行`Done()`
+
+```ts
+
+```
 
 ## 如果你想...
 

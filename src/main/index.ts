@@ -1,10 +1,9 @@
-import { ipcMain, BrowserWindow } from 'electron';
+import { BrowserWindow } from 'electron';
+import { MoreMenuRegister } from '../register';
 
-ipcMain.on('LLTemplate-Vite.Greeting', (e, name: string) => {
-  console.log('Hello, ' + name + '!');
-});
+MoreMenuRegister.echo();
 
 export const onBrowserWindowCreated = (window: BrowserWindow) => {
-  console.log('A window has just been created');
-  console.log(window);
+  // no need to call
+  return;
 };

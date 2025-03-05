@@ -1,7 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron';
 
-contextBridge.exposeInMainWorld('LLTemplate_Vite', {
-  greeting: (name: string) => {
-    ipcRenderer.send('LLTemplate-Vite.Greeting', name);
-  }
+contextBridge.exposeInMainWorld('lib_moremenu', {
+  // 获取waitGroup值
+  getWaitGroup: () => ipcRenderer.invoke('lib.scb.moremenu.get-wait-group'),
+  // more...
 });
