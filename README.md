@@ -2,48 +2,80 @@
 
 允许用户添加左下角的更多菜单选项
 
-## 使用
-
-主进程中只需要向register管理器注册自己的信息
-
-```ts
-// 主进程中直接注册插件
-mainPluginUtil.registerPlugin('plugin1');
-```
-
-在渲染进程中通过MoreMenu管理器添加自己的按钮,添加完全部的按钮后执行`Done()`
-
-```ts
-
-```
-
-## 如果你想...
-
-* 在编写插件时使用 `npm` / `yarn` 等包管理器；
-* 被 `Webpack` 的打包速度困扰已久
-* 希望使用 `TypeScript` 编写插件脚本
-* 想使用 `ESLint` 纠正代码错误和统一格式
-* 执行一行命令即可完成代码检查、代码打包和输出 `zip` 文件
-
-那么这个模板正好适合你！
 
 ## 使用
 
-1. 点击本仓库页面右上角的 `Use this template`，然后选择 `Create a new repository`
-2. 在接下来的页面中填写你的仓库信息后，点击 `Create repository`
-3. 将创建的仓库克隆至本地，然后编辑 [`manifest.json`](manifest.json) （[文档](https://liteloaderqqnt.github.io/docs/introduction.html#%E6%89%8B%E5%8A%A8%E5%88%9B%E5%BB%BA)）
-4. （可选）编辑 [TypeScript 配置文件](tsconfig.json)、[Vite 配置文件](electron.vite.config.ts) 和 [ESLint 配置文件](.eslintrc.js)，让项目配置风格更符合你的口味
-5. 运行 `npm install` 安装依赖包，你也可以随意安装其他需要的依赖包
-6. 开始编写代码
-7. 执行 `npm run lint` 检查代码
-8. 执行 `npm run build` 打包代码并输出 `zip` 文件
-9. 安装体验或是将成果分享给你的朋友吧！
+使用本插件,主进程中只需要向register管理器注册自己的信息,通过`global`暴露的`MoreMenuRegister`在liteloaderQQNT指定的`onBrowserWindowCreated()`函数中完成这个步骤
 
-## 常见问题
+```ts
+// main/index.ts
+export const onBrowserWindowCreated = (window: BrowserWindow) => {
+  const MoreMenuRegister = global.MoreMenuRegister;
+  MoreMenuRegister.registerPlugin('scb_forceQuit');
+  return;
+};
+```
 
-### 部分模块打包后功能不正常或不起作用
+在渲染进程中通过`window`暴露的MoreMenu管理器添加自己的按钮,执待全部的按钮添加后执行`Done()`结束流程.
 
-请遵循 [Rollup 文档](https://rollupjs.org/configuration-options/#external) 将运行不正常的模块添加至 Vite 的 `rollupOptions` 中，然后利用 `vite-plugin-cp` 插件将对应模块复制到 `dist/node_modules` 目录中。
+这里使用setInterval是为了确保liteloader加载用户插件时,`lib_moremenu`已经加载. 
+
+> 尚未明确liteloader是否有办法指定每个插件的前置依赖.
+
+```ts
+// renderer/index.ts, 全局作用块中
+const timer = setInterval(() => {
+  const MoreMenuManager = window.MoreMenuManager;
+  if (MoreMenuManager && MoreMenuManager != undefined) {
+    MoreMenuManager.AddItem(svgIcon, 'Exit QQ', () => {
+      forceAPI.quit(); // 用户插件定义的一个api
+    }, 'scb_forceQuit');
+    MoreMenuManager.Done();
+
+    clearInterval(timer);
+  }}, 500);
+
+const svgIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-octagon" viewBox="0 0 16 16">
+  <path d="M4.54.146A.5.5 0 0 1 4.893 0h6.214a.5.5 0 0 1 .353.146l4.394 4.394a.5.5 0 0 1 .146.353v6.214a.5.5 0 0 1-.146.353l-4.394 4.394a.5.5 0 0 1-.353.146H4.893a.5.5 0 0 1-.353-.146L.146 11.46A.5.5 0 0 1 0 11.107V4.893a.5.5 0 0 1 .146-.353zM5.1 1 1 5.1v5.8L5.1 15h5.8l4.1-4.1V5.1L10.9 1z"/>
+  <path d="M4.646 4.646a.5.5 0 0 1 .708 0L8 7.293l2.646-2.647a.5.5 0 0 1 .708.708L8.707 8l2.647 2.646a.5.5 0 0 1-.708.708L8 8.707l-2.646 2.647a.5.5 0 0 1-.708-.708L7.293 8 4.646 5.354a.5.5 0 0 1 0-.708"/>
+</svg>`;
+```
+
+
+
+## TODO list
+
+- [ ] 主进程/渲染进程,waitGroup变量互斥性
+- [ ] 对用户插件开发更加友善的增加`more_menu`选项流程
+- [ ] 完善函数签名注释
+
+
+
+## 理论和实现
+
+一些隐藏的问题可能是由实现方法导致,这里列出来欢迎斧正
+
+### 实现增加菜单选项`more_menu.ts`
+
+通过`waitGroup`信号量大小的判断所有已注册插件已完成item的添加,开始执行菜单注入流程.
+
+首先确保QQNT mainWindow包含增强过的更多菜单的style,他会确保菜单定位通过bottom而非原生的top.并允许上下滚动和限制最大高度(50vh)
+
+使用`MutationObserver`监听DOM树变化.通过选择器`.q-context-menu.more-menu.q-context-menu__mixed-type`找到更多菜单.判断是否已经修改过,如无开始下列注入主要注入逻辑.
+
+> 这里我参考了`LiteLoaderQQNT_lite_tools`的实现方式,但是那位作者为了寻找右键菜单,寻找右键菜单所使用的选择器是`.q-context-menu:not(.lite-toos-context-menu)`,但是这会导致左下角更多菜单展开时,发生DOM变化,而该更多菜单的类包含`.q-context-menu`,因此会被意料之外的注入.
+>
+> 这里我清除了那位作者带来的影响,使得两个插件可以兼容.
+>
+> 如果有其他插件带来了这种影响,请修改`src/constants.ts`的`OTHER_MENU_CLASSES`
+
+对每个插件注册过的item,通过模板创建一个more_menu_item风格的Element,并为clieck事件添加用户需求的callback(以及关闭菜单),之后将他添加到menu中.
+
+### 注册用户插件
+
+主进程中,全局区域为本lib插件创建注册管理器实例,为global创建成员以方便所有用户插件的主进程进行调用.因此用户需要确保晚于本lib插件全局区域执行后再执行,而最好的解决方案就是在`onBrowserWindowCreated()`函数中执行.
+
+渲染进程中,全局区域初始化菜单管理器实例,为window创建成员以方便所有用户插件的渲染进程进行调用.因此用户需要确保晚于本lib插件全局区域执行后再执行,这里目前的最佳实践是通过设置可清理定时器的方案.
 
 ## 鸣谢
 
